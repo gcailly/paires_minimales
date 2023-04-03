@@ -8,13 +8,16 @@ Application.
 import sys
 import importlib
 from pathlib import Path
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QPixmap, QScreen
-from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QListWidget,
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
+                               QListWidget, QListWidgetItem,
                                QPushButton, QLabel, QWidget, QSpacerItem, QSizePolicy,
-                               QDialog, QDialogButtonBox, QMenu, QMenuBar)
+                               QDialog, QDialogButtonBox,
+                               QMenu, QMenuBar)
 
 
+from pairs import pairs
 
 
 class SoftwareInfo:
@@ -26,9 +29,6 @@ class SoftwareInfo:
     VERSION = "1.0.0"
     AUTHOR = "Gautier Cailly"
     WEBSITE = "www.oortho.fr"
-
-
-
 
 
 class PathManager:
@@ -105,54 +105,84 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Initialization."""
         super().__init__()
+
+        self.pairs = pairs  # From 'pairs' package.
+
         self.setWindowTitle(f"{SoftwareInfo.NAME} {SoftwareInfo.VERSION}")
-        self.create_menu()
+
+        # Define the attributes
+        self.list_a = None
+        self.list_b = None
+        self.empty_widget = None
+        self.toggle_button = None
+        self.left_layout = None
+        self.image_label1 = None
+        self.image_label2 = None
+        self.pixmap1 = None
+        self.pixmap2 = None
+        self.listen_button = None
+        self.right_layout = None
+        self.central_widget = None
+
         self.init_ui()
+        self.create_menu()
+        self.populate_list_a()
 
     def create_menu(self):
         """Create the menu."""
 
+        # Create a menu bar for the main window.
         menu_bar = QMenuBar(self)
-
-        help_menu = QMenu("Help", self)
+        # Create a Help menu and add it to the menu bar.
+        help_menu = QMenu("Aide", self)
         menu_bar.addMenu(help_menu)
-
-        about_action = menu_bar.addAction("About")
+        # Create an About action and add it to the menu bar.
+        about_action = menu_bar.addAction("À propos")
         about_action.triggered.connect(self.show_about_dialog)
-
+        # Set the menu bar for the main window.
         self.setMenuBar(menu_bar)
-
 
     def init_ui(self):
         """Contains the window's widgets."""
 
-        # Create the main layout.
         main_layout = QHBoxLayout()
 
-        # Create lists A and B.
+        # Initialize the lists and button layout.
+        self.init_lists_and_button()
+        main_layout.addLayout(self.left_layout)
+
+        # Initialize the images and "Listen" button layout.
+        self.init_images_and_listen_button()
+        main_layout.addLayout(self.right_layout)
+        self.init_central_widget(main_layout)
+        self.resize_and_position_window()
+
+    def init_lists_and_button(self):
+        """Initialize the lists and the toggle button."""
+
         self.list_a = QListWidget()
         self.list_b = QListWidget()
         self.list_a.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.list_b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.list_a.itemClicked.connect(self.update_list_b)
 
-        # Widget with the same width as the lists to replace them when they are hidden.
         self.empty_widget = QWidget()
         self.empty_widget.setFixedWidth(200)
 
-        # Create the button to hide/show the lists.
-        self.toggle_button = QPushButton("Hide/Show")
+        self.toggle_button = QPushButton("Afficher/masquer")
         self.toggle_button.clicked.connect(self.toggle_lists)
-        # self.toggle_button.setFixedSize(100, 30)  # Set a fixed size for the button.
 
-        # Create a QVBoxLayout for the lists and the button.
         self.left_layout = QVBoxLayout()
         self.left_layout.addWidget(self.list_a)
         self.left_layout.addWidget(self.list_b)
         self.left_layout.addWidget(self.toggle_button)
+
         lists_width = self.list_a.sizeHint().width()
         self.toggle_button.setFixedWidth(lists_width)
 
-        # Create the two images side by side.
+    def init_images_and_listen_button(self):
+        """Initialize the images and the "Listen" button."""
+
         self.image_label1 = QLabel()
         self.image_label2 = QLabel()
         self.pixmap1 = QPixmap("image1.png")
@@ -162,53 +192,39 @@ class MainWindow(QMainWindow):
         self.image_label1.setAlignment(Qt.AlignCenter)
         self.image_label2.setAlignment(Qt.AlignCenter)
 
-        # Create a QHBoxLayout for the images.
         images_layout = QHBoxLayout()
         images_layout.addWidget(self.image_label1)
         images_layout.addWidget(self.image_label2)
 
-        # Create the "Listen" button.
         self.listen_button = QPushButton("Listen")
         self.listen_button.setFixedHeight(24)
 
-        # Create a QHBoxLayout to center the "Listen" button.
         listen_button_layout = QHBoxLayout()
         listen_button_layout.addWidget(self.listen_button)
         listen_button_layout.setAlignment(self.listen_button, Qt.AlignCenter)
 
-        # Add the images and the button to a QVBoxLayout.
-        right_layout = QVBoxLayout()
-        right_layout.addLayout(images_layout)  # Add the QHBoxLayout of images here.
-        right_layout.addLayout(listen_button_layout)  # Add the QHBoxLayout of the "Listen" button.
+        self.right_layout = QVBoxLayout()
+        self.right_layout.addLayout(images_layout)
+        self.right_layout.addLayout(listen_button_layout)
 
-        # Add the left and right layouts to the main layout.
-        main_layout.addLayout(self.left_layout)
-        main_layout.addLayout(right_layout)
+    def init_central_widget(self, main_layout):
+        """Create the central widget and set the main layout."""
 
-        # Fixed width for the lists and the button.
-        fixed_width = 200
-        self.list_a.setFixedWidth(fixed_width)
-        self.list_b.setFixedWidth(fixed_width)
-        self.toggle_button.setFixedWidth(fixed_width)
-
-        # Create a central widget and set the main layout.
         self.central_widget = QWidget()
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
 
-        # Get the screen size.
+    def resize_and_position_window(self):
+        """Resize and position the main window."""
+
         screen = QApplication.primaryScreen()
         screen_size = screen.availableGeometry()
 
-        # Calculate the desired size as 80% of the screen's width and height
         desired_width = int(screen_size.width() * 0.8)
         desired_height = int(screen_size.height() * 0.8)
 
-        # Set the size of the main window.
         self.resize(desired_width, desired_height)
-        # self.showMaximized()
         self.resize_images()
-
 
     def resize_images(self):
         """Resize the images when the window is resized."""
@@ -236,13 +252,11 @@ class MainWindow(QMainWindow):
         self.image_label1.setPixmap(self.pixmap1.scaled(width, height, Qt.KeepAspectRatio))
         self.image_label2.setPixmap(self.pixmap2.scaled(width, height, Qt.KeepAspectRatio))
 
-
     def resizeEvent(self, event):
         """Handle the window resize event."""
 
         super().resizeEvent(event)
         self.resize_images()
-
 
     def toggle_lists(self):
         """Toggle the visibility of the lists. Replace them with an empty widget to take the same
@@ -275,6 +289,28 @@ class MainWindow(QMainWindow):
             # Show List A and List B.
             self.list_a.show()
             self.list_b.show()
+
+    def populate_list_a(self):
+        """Populate the first list (A) with pair category ("p / b", etc.)."""
+        for pair in self.pairs:
+            item = QListWidgetItem(pair[0].replace("_", " / "))
+            self.list_a.addItem(item)
+
+    def update_list_b(self, item):
+        """Update the second list (B) with pairs of a category ("pain / bain", etc.)."""
+        # Find the corresponding pair.
+        pair_label = item.text().replace(" / ", "_")
+        pair_data = None
+        for pair in self.pairs:
+            if pair[0] == pair_label:
+                pair_data = pair[1:]
+                break
+        # Clear List B and update it with the new word pairs.
+        if pair_data:
+            self.list_b.clear()
+            for word_pair in pair_data:
+                formatted_pair = f"{word_pair[0]} / {word_pair[1]}"
+                self.list_b.addItem(formatted_pair)
 
     def show_about_dialog(self):
         """Display an About Dialog for the application."""
