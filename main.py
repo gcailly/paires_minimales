@@ -7,14 +7,16 @@ Application.
 
 import sys
 import importlib
+import random
 from pathlib import Path
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
                                QListWidget, QListWidgetItem,
                                QPushButton, QLabel, QWidget, QSpacerItem, QSizePolicy,
                                QDialog, QDialogButtonBox,
                                QMenu, QMenuBar)
+from PySide6.QtMultimedia import QSoundEffect
 
 
 from pairs import pairs
@@ -165,6 +167,7 @@ class MainWindow(QMainWindow):
         self.list_a.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.list_b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.list_a.itemClicked.connect(self.update_list_b)
+        self.list_b.itemClicked.connect(self.handle_list_b_click)
 
         self.empty_widget = QWidget()
         self.empty_widget.setFixedWidth(200)
@@ -196,7 +199,7 @@ class MainWindow(QMainWindow):
         images_layout.addWidget(self.image_label1)
         images_layout.addWidget(self.image_label2)
 
-        self.listen_button = QPushButton("Listen")
+        self.listen_button = QPushButton("Écouter")
         self.listen_button.setFixedHeight(24)
 
         listen_button_layout = QHBoxLayout()
@@ -311,6 +314,37 @@ class MainWindow(QMainWindow):
             for word_pair in pair_data:
                 formatted_pair = f"{word_pair[0]} / {word_pair[1]}"
                 self.list_b.addItem(formatted_pair)
+
+    def handle_list_b_click(self, item):
+        """Handle the click event on a word pair in List B. Update the displayed images and prepare
+        the audio file to be played by the "Listen" button."""
+
+        # Get the image names and audio file from the clicked item in List B.
+        pair = item.text().split(" / ")
+        word1, word2 = pair
+        image1_path = PathManager.get_image_path(word1)
+        image2_path = PathManager.get_image_path(word2)
+        audio_files = [
+            PathManager.get_sound_path(word1),
+            PathManager.get_sound_path(word2)]
+
+        # Update the image labels with the new images.
+        self.pixmap1 = QPixmap(image1_path)
+        self.pixmap2 = QPixmap(image2_path)
+        self.image_label1.setPixmap(self.pixmap1)
+        self.image_label2.setPixmap(self.pixmap2)
+
+        self.resize_images()
+
+        # Update the audio playback function of the "Listen" button.
+        self.listen_button.clicked.connect(lambda: self.play_random_audio(audio_files))
+
+    def play_random_audio(self, audio_files):
+        """Play a random audio file from the given list of audio files."""
+        random_audio = random.choice(audio_files)
+        sound_effect = QSoundEffect()
+        sound_effect.setSource(QUrl.fromLocalFile(random_audio))
+        sound_effect.play()
 
     def show_about_dialog(self):
         """Display an About Dialog for the application."""
