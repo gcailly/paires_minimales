@@ -29,7 +29,7 @@ class SoftwareInfo:
     associated website.
     """
     NAME = "Les Paires Minimales"
-    VERSION = "1.0.0"
+    VERSION = "0.4.0"
     AUTHOR = "Gautier Cailly"
     WEBSITE = "www.oortho.fr"
 
@@ -43,14 +43,12 @@ class PathManager:
     @staticmethod
     def get_image_path(word: str) -> Path:
         """Gets the path to the image file corresponding to the given word."""
-        with importlib.resources.path("data.images", f"{word}.png") as image_path:
-            return image_path
+        return importlib.resources.files("data") / "images" / f"{word}.png"
 
     @staticmethod
     def get_sound_path(word: str) -> Path:
         """Gets the path to the sound file corresponding to the given word."""
-        with importlib.resources.path("data.sounds", f"{word}.wav") as sound_path:
-            return sound_path
+        return importlib.resources.files("data") / "sounds" / f"{word}.wav"
 
 
 class AboutDialog(QDialog):
@@ -59,31 +57,34 @@ class AboutDialog(QDialog):
     image credits.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self,
+                 app_name: str, app_version: str, app_author: str, website: str,
+                 parent=None):
+        """Init."""
+
         super().__init__(parent)
+        self.app_name = app_name
+        self.app_version = app_version
+        self.app_author = app_author
+        self.website = website
         self.init_ui()
 
     def init_ui(self):
         """Initializes the user interface of the dialog."""
 
-        self.setWindowTitle("About")
+        self.setWindowTitle("À propos")
         self.setMinimumWidth(300)
         layout = QVBoxLayout()
 
         # Create content.
         content_text = f"""
-            <b>{SoftwareInfo.NAME}
+            <b>{self.app_name}
             </b><br>
-            Version : {SoftwareInfo.VERSION}
+            Version : {self.app_version}
             <br>
-            Auteur : {SoftwareInfo.AUTHOR}
+            Auteur : {self.app_author}
             <br>
-            <a href="https://www.oortho.fr">www.oortho.fr</a><br> <br>
-            Crédit images : ARASAAC, Gautier Cailly
-            <br>
-            <br>
-            This is a sample paragraph of text.
-            Voilà.
+            <a href="https://{self.website}">{self.website}</a>
             """
         content = QLabel(content_text)
         content.setWordWrap(True)
@@ -365,9 +366,15 @@ class MainWindow(QMainWindow):
         """Display an About Dialog for the application."""
 
         # Create an instance of the AboutDialog.
-        about_dialog = AboutDialog()
+        about_dialog = AboutDialog(parent = self,
+                                   app_name=SoftwareInfo.NAME,
+                                   app_version=SoftwareInfo.VERSION,
+                                   app_author=SoftwareInfo.AUTHOR,
+                                   website=SoftwareInfo.WEBSITE)
         # Show the AboutDialog.
         about_dialog.show()
+
+
 
 
 if __name__ == "__main__":
