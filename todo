@@ -5,6 +5,7 @@ Global:
     ✔ Audio ne marche pas @done(23-04-05 09:55)
     ☐ Structure MVC
     ☐ Modifier paragraphe AboutDialog
+    ☐ Message d'erreur si le son est muet
 
 Build:
     ☐ Build qui intègre les images

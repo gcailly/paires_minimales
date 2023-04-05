@@ -20,7 +20,6 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayo
                                QMenu, QMenuBar)
 from PySide6.QtMultimedia import QSoundEffect
 
-
 from pairs import pairs
 
 
@@ -52,7 +51,6 @@ class PathManager:
         """Gets the path to the sound file corresponding to the given word."""
         with importlib.resources.path("data.sounds", f"{word}.wav") as sound_path:
             return sound_path
-
 
 
 class AboutDialog(QDialog):
@@ -105,7 +103,7 @@ class AboutDialog(QDialog):
 
 class SmoothImageLabel(QLabel):
     """A QLabel subclass that smoothly scales its QPixmap.
-    It's needed because the images are 2500x2500 so they have aliasing when they are resized"""
+    It's needed because big images are aliased when they are resized smaller."""
 
     def __init__(self, image_path: str, width: int, height: int, *args, **kwargs):
         """Initialize the SmoothImageLabel with an image and dimensions."""
@@ -126,7 +124,6 @@ class SmoothImageLabel(QLabel):
         self.setPixmap(pixmap)
 
 
-
 class MainWindow(QMainWindow):
     """Main window."""
 
@@ -139,10 +136,9 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"{SoftwareInfo.NAME} {SoftwareInfo.VERSION}")
 
-        # Define the attributes
+        # Define the attributes.
         self.list_a = None
         self.list_b = None
-        self.empty_widget = None
         self.toggle_button = None
         self.left_layout = None
         self.image_label1 = None
@@ -150,14 +146,29 @@ class MainWindow(QMainWindow):
         self.pixmap1 = None
         self.pixmap2 = None
         self.listen_button = None
-        self.right_layout = None
         self.central_widget = None
 
         self.init_ui()
-        self.create_menu()
         self.populate_list_a()
 
-    def create_menu(self):
+    def init_ui(self):
+        """Contains the window's widgets."""
+
+        # Menu creation.
+        self.init_menu()
+
+        main_layout = QHBoxLayout()
+
+        self.left_layout = self.init_left_layout()
+        self.right_layout = self.init_right_layout()
+        main_layout.addLayout(self.left_layout)
+        main_layout.addLayout(self.right_layout)
+
+        # Initialize the images and "Listen" button layout.
+        self.init_central_widget(main_layout)
+        self.resize_and_position_window()
+
+    def init_menu(self):
         """Create the menu."""
 
         # Create a menu bar for the main window.
@@ -171,22 +182,7 @@ class MainWindow(QMainWindow):
         # Set the menu bar for the main window.
         self.setMenuBar(menu_bar)
 
-    def init_ui(self):
-        """Contains the window's widgets."""
-
-        main_layout = QHBoxLayout()
-
-        # Initialize the lists and button layout.
-        self.init_lists_and_button()
-        main_layout.addLayout(self.left_layout)
-
-        # Initialize the images and "Listen" button layout.
-        self.init_images_and_listen_button()
-        main_layout.addLayout(self.right_layout)
-        self.init_central_widget(main_layout)
-        self.resize_and_position_window()
-
-    def init_lists_and_button(self):
+    def init_left_layout(self):
         """Initialize the lists and the toggle button."""
 
         self.list_a = QListWidget()
@@ -195,9 +191,6 @@ class MainWindow(QMainWindow):
         self.list_b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.list_a.itemClicked.connect(self.update_list_b)
         self.list_b.itemClicked.connect(self.handle_list_b_click)
-
-        self.empty_widget = QWidget()
-        self.empty_widget.setFixedWidth(200)
 
         self.toggle_button = QPushButton("Afficher/masquer")
         self.toggle_button.clicked.connect(self.toggle_lists)
@@ -210,7 +203,9 @@ class MainWindow(QMainWindow):
         lists_width = self.list_a.sizeHint().width()
         self.toggle_button.setFixedWidth(lists_width)
 
-    def init_images_and_listen_button(self):
+        return self.left_layout
+
+    def init_right_layout(self):
         """Initialize the images and the "Listen" button."""
 
         self.image_label1 = SmoothImageLabel("_transparent.png", 0, 0)
@@ -229,9 +224,11 @@ class MainWindow(QMainWindow):
         listen_button_layout.addWidget(self.listen_button)
         listen_button_layout.setAlignment(self.listen_button, Qt.AlignCenter)
 
-        self.right_layout = QVBoxLayout()
-        self.right_layout.addLayout(images_layout)
-        self.right_layout.addLayout(listen_button_layout)
+        init_right_layout = QVBoxLayout()
+        init_right_layout.addLayout(images_layout)
+        init_right_layout.addLayout(listen_button_layout)
+        
+        return init_right_layout
 
     def init_central_widget(self, main_layout):
         """Create the central widget and set the main layout."""
@@ -281,6 +278,9 @@ class MainWindow(QMainWindow):
         """Toggle the visibility of the lists. Replace them with an empty widget to take the same
         place/size."""
 
+        empty_widget = QWidget()
+        empty_widget.setFixedWidth(200)
+
         # Check if List A is visible.
         if self.list_a.isVisible():
             # Get the index of List A in the left layout.
@@ -292,16 +292,16 @@ class MainWindow(QMainWindow):
             self.list_a.hide()
             self.list_b.hide()
             # Insert the empty widget at the index of List A.
-            self.left_layout.insertWidget(left_layout_index, self.empty_widget)
+            self.left_layout.insertWidget(left_layout_index, empty_widget)
             # Show the empty widget.
-            self.empty_widget.show()
+            empty_widget.show()
         else:
             # Get the index of the empty widget in the left layout.
-            left_layout_index = self.left_layout.indexOf(self.empty_widget)
+            left_layout_index = self.left_layout.indexOf(empty_widget)
             # Remove the empty widget from the left layout.
-            self.left_layout.removeWidget(self.empty_widget)
+            self.left_layout.removeWidget(empty_widget)
             # Hide the empty widget.
-            self.empty_widget.hide()
+            empty_widget.hide()
             # Insert List A and List B at the index of the empty widget.
             self.left_layout.insertWidget(left_layout_index, self.list_a)
             self.left_layout.insertWidget(left_layout_index + 1, self.list_b)
