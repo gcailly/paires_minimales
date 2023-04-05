@@ -119,7 +119,7 @@ pairs = [
     ["tr_kr",
         ["trier", "crier"],
         ["trois", "croix"],
-        ["trot-trop", "croc"],
+        ["trop", "croc"],
         ["trait", "craie"],
         ["entre", "encre"]
      ],

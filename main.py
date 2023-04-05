@@ -8,7 +8,9 @@ Application.
 import sys
 import importlib
 import random
+from typing import Optional
 from pathlib import Path
+
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
@@ -101,6 +103,30 @@ class AboutDialog(QDialog):
         self.exec()
 
 
+class SmoothImageLabel(QLabel):
+    """A QLabel subclass that smoothly scales its QPixmap.
+    It's needed because the images are 2500x2500 so they have aliasing when they are resized"""
+
+    def __init__(self, image_path: str, width: int, height: int, *args, **kwargs):
+        """Initialize the SmoothImageLabel with an image and dimensions."""
+        super().__init__(*args, **kwargs)
+        self.image_path = image_path
+        self.original_pixmap = QPixmap(self.image_path)
+        self.current_width = width
+        self.current_height = height
+        self.set_image(self.image_path, width, height)
+
+    def set_image(self, image_path: str, width: int, height: int):
+        """Set the image and resize it according to the given width and height."""
+        self.image_path = image_path
+        self.current_width = width
+        self.current_height = height
+        pixmap = QPixmap(image_path)
+        pixmap = pixmap.scaled(width, height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.setPixmap(pixmap)
+
+
+
 class MainWindow(QMainWindow):
     """Main window."""
 
@@ -108,6 +134,7 @@ class MainWindow(QMainWindow):
         """Initialization."""
         super().__init__()
 
+        self.current_sound = None
         self.pairs = pairs  # From 'pairs' package.
 
         self.setWindowTitle(f"{SoftwareInfo.NAME} {SoftwareInfo.VERSION}")
@@ -186,12 +213,8 @@ class MainWindow(QMainWindow):
     def init_images_and_listen_button(self):
         """Initialize the images and the "Listen" button."""
 
-        self.image_label1 = QLabel()
-        self.image_label2 = QLabel()
-        self.pixmap1 = QPixmap("image1.png")
-        self.pixmap2 = QPixmap("image2.png")
-        self.image_label1.setPixmap(self.pixmap1)
-        self.image_label2.setPixmap(self.pixmap2)
+        self.image_label1 = SmoothImageLabel("_transparent.png", 0, 0)
+        self.image_label2 = SmoothImageLabel("_transparent.png", 0, 0)
         self.image_label1.setAlignment(Qt.AlignCenter)
         self.image_label2.setAlignment(Qt.AlignCenter)
 
@@ -237,23 +260,16 @@ class MainWindow(QMainWindow):
 
         # Main window height - "Listen" button height - margins.
         available_height = (self.height() - self.listen_button.height()
-                           - self.layout().contentsMargins().top()
-                           - self.layout().contentsMargins().bottom())
-        print(f"""
-            available_height : {available_height}
-            self.height() : {self.height()}
-            self.toggle_button.height() : {self.listen_button.height()}
-            self.layout().contentsMargins().top() : {self.layout().contentsMargins().top()}
-            self.layout().contentsMargins().bottom() : {self.layout().contentsMargins().bottom()}
-        """)
+                        - self.layout().contentsMargins().top()
+                        - self.layout().contentsMargins().bottom())
 
         # Use 60% of the available width and heigh for each image.
         width = int(available_width * 0.6)
         height = int(available_height * 0.6)
 
         # Resize the images based on the window size.
-        self.image_label1.setPixmap(self.pixmap1.scaled(width, height, Qt.KeepAspectRatio))
-        self.image_label2.setPixmap(self.pixmap2.scaled(width, height, Qt.KeepAspectRatio))
+        self.image_label1.set_image(self.image_label1.image_path, width, height)
+        self.image_label2.set_image(self.image_label2.image_path, width, height)
 
     def resizeEvent(self, event):
         """Handle the window resize event."""
@@ -329,10 +345,8 @@ class MainWindow(QMainWindow):
             PathManager.get_sound_path(word2)]
 
         # Update the image labels with the new images.
-        self.pixmap1 = QPixmap(image1_path)
-        self.pixmap2 = QPixmap(image2_path)
-        self.image_label1.setPixmap(self.pixmap1)
-        self.image_label2.setPixmap(self.pixmap2)
+        self.image_label1.set_image(image1_path, 0, 0)
+        self.image_label2.set_image(image2_path, 0, 0)
 
         self.resize_images()
 
@@ -342,9 +356,10 @@ class MainWindow(QMainWindow):
     def play_random_audio(self, audio_files):
         """Play a random audio file from the given list of audio files."""
         random_audio = random.choice(audio_files)
-        sound_effect = QSoundEffect()
-        sound_effect.setSource(QUrl.fromLocalFile(random_audio))
-        sound_effect.play()
+        self.current_sound = QSoundEffect()
+        self.current_sound.setSource(QUrl.fromLocalFile(random_audio))
+        # self.current_sound.setVolume(0.5)
+        self.current_sound.play()
 
     def show_about_dialog(self):
         """Display an About Dialog for the application."""

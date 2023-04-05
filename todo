@@ -1,7 +1,10 @@
 
 Global:
-    ☐ Changement des images
+    ✔ Changement des images @done(23-04-04 23:44)
+    ☐ Quelques arrières-plans à rendre transparents
+    ✔ Audio ne marche pas @done(23-04-05 09:55)
     ☐ Structure MVC
+    ☐ Modifier paragraphe AboutDialog
 
 Build:
     ☐ Build qui intègre les images
