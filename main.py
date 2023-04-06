@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
         self.left_layout = QVBoxLayout()
         self.left_layout.addWidget(self.list_a)
         self.left_layout.addWidget(self.list_b)
-        self.left_layout.addWidget(self.toggle_button)
+        self.left_layout.addWidget(self.toggle_button, alignment=Qt.AlignBottom)
 
         lists_width = self.list_a.sizeHint().width()
         self.toggle_button.setFixedWidth(lists_width)
@@ -276,37 +276,20 @@ class MainWindow(QMainWindow):
         self.resize_images()
 
     def toggle_lists(self):
-        """Toggle the visibility of the lists. Replace them with an empty widget to take the same
-        place/size."""
+        """Toggle the visibility of the lists."""
 
+        # Empty widget to take the same place/size.
         empty_widget = QWidget()
         empty_widget.setFixedWidth(200)
 
         # Check if List A is visible.
         if self.list_a.isVisible():
-            # Get the index of List A in the left layout.
-            left_layout_index = self.left_layout.indexOf(self.list_a)
-            # Remove List A and List B from the left layout.
-            self.left_layout.removeWidget(self.list_a)
-            self.left_layout.removeWidget(self.list_b)
-            # Hide List A and List B.
             self.list_a.hide()
             self.list_b.hide()
-            # Insert the empty widget at the index of List A.
-            self.left_layout.insertWidget(left_layout_index, empty_widget)
-            # Show the empty widget.
+            self.left_layout.insertWidget(empty_widget)
             empty_widget.show()
         else:
-            # Get the index of the empty widget in the left layout.
-            left_layout_index = self.left_layout.indexOf(empty_widget)
-            # Remove the empty widget from the left layout.
             self.left_layout.removeWidget(empty_widget)
-            # Hide the empty widget.
-            empty_widget.hide()
-            # Insert List A and List B at the index of the empty widget.
-            self.left_layout.insertWidget(left_layout_index, self.list_a)
-            self.left_layout.insertWidget(left_layout_index + 1, self.list_b)
-            # Show List A and List B.
             self.list_a.show()
             self.list_b.show()
 
@@ -359,7 +342,7 @@ class MainWindow(QMainWindow):
         random_audio = random.choice(audio_files)
         self.current_sound = QSoundEffect()
         self.current_sound.setSource(QUrl.fromLocalFile(random_audio))
-        # self.current_sound.setVolume(0.5)
+        self.current_sound.setVolume(1)
         self.current_sound.play()
 
     def show_about_dialog(self):
