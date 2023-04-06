@@ -43,12 +43,20 @@ class PathManager:
     @staticmethod
     def get_image_path(word: str) -> Path:
         """Gets the path to the image file corresponding to the given word."""
-        return importlib.resources.files("data") / "images" / f"{word}.png"
+        file_path = importlib.resources.files("data") / "images" / f"{word}.png"
+        return file_path
 
     @staticmethod
     def get_sound_path(word: str) -> Path:
         """Gets the path to the sound file corresponding to the given word."""
-        return importlib.resources.files("data") / "sounds" / f"{word}.wav"
+        file_path = importlib.resources.files("data") / "sounds" / f"{word}.wav"
+        return file_path
+    
+    @staticmethod
+    def file_exists(file_path: Path) -> None:
+        """Checks if a file exists at the given path."""
+        if not file_path.exists():
+            print(f"{file_path} does not exist.")
 
 
 class AboutDialog(QDialog):
@@ -88,6 +96,7 @@ class AboutDialog(QDialog):
             """
         content = QLabel(content_text)
         content.setWordWrap(True)
+        content.setOpenExternalLinks(True)
         layout.addWidget(content)
 
         # Create action buttons.
@@ -110,19 +119,19 @@ class SmoothImageLabel(QLabel):
         """Initialize the SmoothImageLabel with an image and dimensions."""
         super().__init__(*args, **kwargs)
         self.image_path = image_path
-        self.original_pixmap = QPixmap(self.image_path)
-        self.current_width = width
-        self.current_height = height
-        self.set_image(self.image_path, width, height)
+        self.pixmap = QPixmap(self.image_path)
+        self.width = width
+        self.height = height
+        self.set_image(self.image_path, self.width, self.height)
 
     def set_image(self, image_path: str, width: int, height: int):
         """Set the image and resize it according to the given width and height."""
         self.image_path = image_path
-        self.current_width = width
-        self.current_height = height
-        pixmap = QPixmap(image_path)
-        pixmap = pixmap.scaled(width, height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.setPixmap(pixmap)
+        self.width = width
+        self.height = height
+        self.pixmap = QPixmap(self.image_path)
+        self.pixmap = self.pixmap.scaled(self.width, self.height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.setPixmap(self.pixmap)
 
 
 class MainWindow(QMainWindow):
@@ -147,6 +156,7 @@ class MainWindow(QMainWindow):
         self.pixmap1 = None
         self.pixmap2 = None
         self.listen_button = None
+        self.next_button = None
         self.central_widget = None
 
         self.init_ui()
@@ -209,8 +219,9 @@ class MainWindow(QMainWindow):
     def init_right_layout(self):
         """Initialize the images and the "Listen" button."""
 
-        self.image_label1 = SmoothImageLabel("_transparent.png", 0, 0)
-        self.image_label2 = SmoothImageLabel("_transparent.png", 0, 0)
+        image_null = PathManager.get_image_path("_null")
+        self.image_label1 = SmoothImageLabel(image_null, 10, 10)
+        self.image_label2 = SmoothImageLabel(image_null, 10, 10)
         self.image_label1.setAlignment(Qt.AlignCenter)
         self.image_label2.setAlignment(Qt.AlignCenter)
 
@@ -219,15 +230,24 @@ class MainWindow(QMainWindow):
         images_layout.addWidget(self.image_label2)
 
         self.listen_button = QPushButton("Écouter")
-        self.listen_button.setFixedHeight(24)
+        self.listen_button.setFixedHeight(32)
+        self.next_button = QPushButton(" > ")
+        self.next_button.setFixedHeight(32)
 
         listen_button_layout = QHBoxLayout()
+        listen_button_layout.addStretch()
         listen_button_layout.addWidget(self.listen_button)
+        listen_button_layout.addWidget(self.next_button)
+
         listen_button_layout.setAlignment(self.listen_button, Qt.AlignCenter)
+        listen_button_layout.addStretch()
 
         init_right_layout = QVBoxLayout()
+        init_right_layout.addStretch(2)
         init_right_layout.addLayout(images_layout)
+        init_right_layout.addStretch(1)
         init_right_layout.addLayout(listen_button_layout)
+        init_right_layout.addStretch(2)
         
         return init_right_layout
 
