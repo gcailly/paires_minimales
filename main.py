@@ -14,6 +14,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
+                               QMessageBox,
                                QListWidget, QListWidgetItem,
                                QPushButton, QLabel, QWidget, QSpacerItem, QSizePolicy,
                                QDialog, QDialogButtonBox,
@@ -57,6 +58,20 @@ class PathManager:
         """Checks if a file exists at the given path."""
         if not file_path.exists():
             print(f"{file_path} does not exist.")
+
+
+class CurrentItem:
+    """Store current item info."""
+
+    def __init__(self, word1: str, word2: str, audio: str):
+        """Init."""
+
+        self.word1 = word1
+        self.word2 = word2
+        self.audio = audio
+        self.score = 0
+        self.total_attempts = 0
+
 
 
 class AboutDialog(QDialog):
@@ -141,7 +156,8 @@ class MainWindow(QMainWindow):
         """Initialization."""
         super().__init__()
 
-        self.current_sound = None
+        self.current_sound = None  # FIXME : à supprimer
+        self.current_item = None
         self.pairs = pairs  # From 'pairs' package.
 
         self.setWindowTitle(f"{SoftwareInfo.NAME} {SoftwareInfo.VERSION}")
@@ -224,6 +240,8 @@ class MainWindow(QMainWindow):
         self.image_label2 = SmoothImageLabel(image_null, 10, 10)
         self.image_label1.setAlignment(Qt.AlignCenter)
         self.image_label2.setAlignment(Qt.AlignCenter)
+        self.image_label1.mousePressEvent = self.image_label1_clicked
+        self.image_label2.mousePressEvent = self.image_label2_clicked
 
         images_layout = QHBoxLayout()
         images_layout.addWidget(self.image_label1)
@@ -233,6 +251,7 @@ class MainWindow(QMainWindow):
         self.listen_button.setFixedHeight(32)
         self.next_button = QPushButton(" > ")
         self.next_button.setFixedHeight(32)
+        self.next_button.clicked.connect(self.next_item)
 
         listen_button_layout = QHBoxLayout()
         listen_button_layout.addStretch()
@@ -339,29 +358,69 @@ class MainWindow(QMainWindow):
         """Handle the click event on a word pair in List B. Update the displayed images and prepare
         the audio file to be played by the "Listen" button."""
 
-        # Get the image names and audio file from the clicked item in List B.
+        # Get the image and audio names from the clicked item in List B.
         pair = item.text().split(" / ")
         word1, word2 = pair
+        # Pick a random word as good response, which will be pronounced (audio).
+        audio = random.choice(pair)
+        # Store this in current item.
+        self.current_item = CurrentItem(word1, word2, audio)
+        # Set paths.
+        audio_path = PathManager.get_sound_path(audio)
         image1_path = PathManager.get_image_path(word1)
         image2_path = PathManager.get_image_path(word2)
-        audio_files = [
-            PathManager.get_sound_path(word1),
-            PathManager.get_sound_path(word2)]
 
         # Update the image labels with the new images.
         self.image_label1.set_image(image1_path, 0, 0)
         self.image_label2.set_image(image2_path, 0, 0)
-
         self.resize_images()
-
         # Update the audio playback function of the "Listen" button.
-        self.listen_button.clicked.connect(lambda: self.play_random_audio(audio_files))
+        self.listen_button.clicked.connect(lambda: self.play_audio(audio_path))
 
-    def play_random_audio(self, audio_files):
-        """Play a random audio file from the given list of audio files."""
-        random_audio = random.choice(audio_files)
+    def image_label1_clicked(self, event):
+        self.check_answer(self.current_item.word1)
+
+    def image_label2_clicked(self, event):
+        self.check_answer(self.current_item.word2)
+
+    def check_answer(self, selected_word):
+
+        if not self.current_item:
+            return None
+
+        correct_word = self.current_item.audio
+
+        # Vérifier si la réponse est correcte
+        if selected_word == correct_word:
+            self.current_item.score += 1
+            QMessageBox.information(self, "Bravo!", f"La réponse est correcte: {correct_word}")
+            self.next_item()
+        else:
+            QMessageBox.warning(self, "Erreur", f"La réponse est incorrecte. La bonne réponse est: {correct_word}")
+
+        self.current_item.total_attempts += 1
+
+    def next_item(self):
+        """Passe à l'élément suivant dans la liste B."""
+        current_row = self.list_b.currentRow()
+        next_row = current_row + 1
+
+        if next_row < self.list_b.count():
+            next_item = self.list_b.item(next_row)
+            self.list_b.setCurrentItem(next_item)
+            self.handle_list_b_click(next_item)
+        else:
+            QMessageBox.information(self, "Félicitations !", "Vous avez terminé tous les exercices de cette catégorie.")
+            self.current_item = None
+
+    def play_audio(self, file: Path):
+        """Play a random audio file from the given list of audio files.
+        WARNING : Add this line into the __init__ of the QMainWindow, else sound will be stopped
+        when the function ends (so fast we won't hear anything).
+            self.current_sound = None
+        """
         self.current_sound = QSoundEffect()
-        self.current_sound.setSource(QUrl.fromLocalFile(random_audio))
+        self.current_sound.setSource(QUrl.fromLocalFile(file))
         self.current_sound.setVolume(1)
         self.current_sound.play()
 
