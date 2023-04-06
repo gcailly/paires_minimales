@@ -150,6 +150,9 @@ class SmoothImageLabel(QLabel):
 
 
 class CheckBoxMenuItem(QWidget):
+    """A custom menu item with a checkbox.
+    Rationale: the menu does not close when the checkbox is clicked. Very handy for options."""
+
     def __init__(self, text, parent=None):
         super().__init__(parent)
 
@@ -215,16 +218,23 @@ class MainWindow(QMainWindow):
         # Create menu "Options".
         options_menu = QMenu("Options", self)
         menu_bar.addMenu(options_menu)
-        # Option Random Item
-        self.opt_random_item = QAction("Item aléatoire", self, checkable=True)
-        self.opt_random_item.setChecked(True)
+        
+        # FIXME : CheckBoxMenuItem devrait directement être un QWidgetAction, avec une option setChecked, etc.
         # Create a custom widget with a QCheckBox for the "Random Item" option.
-        self.opt_random = CheckBoxMenuItem("Item aléatoire", self)
+        self.opt_random = CheckBoxMenuItem("Ordre aléatoire", self)
         self.opt_random.checkbox.setChecked(True)
         # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
         random_widget_action = QWidgetAction(self)
         random_widget_action.setDefaultWidget(self.opt_random)
         options_menu.addAction(random_widget_action)
+        
+        # Create a custom widget with a QCheckBox for the "Automatic Listening" option.
+        self.opt_auto_listen = CheckBoxMenuItem("Écoute automatique", self)
+        self.opt_auto_listen.checkbox.setChecked(True)
+        # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
+        auto_listen_widget_action = QWidgetAction(self)
+        auto_listen_widget_action.setDefaultWidget(self.opt_auto_listen)
+        options_menu.addAction(auto_listen_widget_action)
 
         # Create a Help menu and add it to the menu bar.
         help_menu = QMenu("Aide", self)
@@ -403,12 +413,18 @@ class MainWindow(QMainWindow):
         # Update the audio playback function of the "Listen" button.
         self.listen_button.clicked.connect(lambda: self.play_audio(audio_path))
 
+        # Play the audio automatically if the "Automatic Listening" option is checked.
+        if self.opt_auto_listen.checkbox.isChecked():
+            self.play_audio(audio_path)
+
     def image_label1_clicked(self, event):
         """When Image1 is clicked."""
+        self.event = event
         self.check_answer(self.current_item.word1)
 
     def image_label2_clicked(self, event):
         """When Image2 is clicked."""
+        self.event = event
         self.check_answer(self.current_item.word2)
 
     def check_answer(self, selected_word):
@@ -429,6 +445,10 @@ class MainWindow(QMainWindow):
         self.current_item.total_attempts += 1
 
     def next_item(self):
+        """Go to next item : next in list B or random in list B.
+        It depends on the random order option."""
+
+        # If nothing is selected in list B, do nothing.
         if self.list_b.currentRow() == -1:
             return
 
