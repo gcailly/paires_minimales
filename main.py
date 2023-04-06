@@ -2,7 +2,7 @@
 Application.
 """
 
-# pylint: disable = no-name-in-module, unused-import
+# pylint: disable = no-name-in-module, unused-import, invalid-name, attribute-defined-outside-init
 
 
 import sys
@@ -12,10 +12,10 @@ from typing import Optional
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QAction, QActionGroup
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
-                               QMessageBox,
-                               QListWidget, QListWidgetItem,
+                               QMessageBox, QWidgetAction,
+                               QListWidget, QListWidgetItem, QCheckBox,
                                QPushButton, QLabel, QWidget, QSpacerItem, QSizePolicy,
                                QDialog, QDialogButtonBox,
                                QMenu, QMenuBar)
@@ -52,7 +52,7 @@ class PathManager:
         """Gets the path to the sound file corresponding to the given word."""
         file_path = importlib.resources.files("data") / "sounds" / f"{word}.wav"
         return file_path
-    
+
     @staticmethod
     def file_exists(file_path: Path) -> None:
         """Checks if a file exists at the given path."""
@@ -71,7 +71,6 @@ class CurrentItem:
         self.audio = audio
         self.score = 0
         self.total_attempts = 0
-
 
 
 class AboutDialog(QDialog):
@@ -145,8 +144,20 @@ class SmoothImageLabel(QLabel):
         self.width = width
         self.height = height
         self.pixmap = QPixmap(self.image_path)
-        self.pixmap = self.pixmap.scaled(self.width, self.height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.pixmap = self.pixmap.scaled(self.width, self.height,
+                                         Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setPixmap(self.pixmap)
+
+
+class CheckBoxMenuItem(QWidget):
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+
+        self.checkbox = QCheckBox(text, self)
+        layout = QHBoxLayout()
+        layout.addWidget(self.checkbox)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
 
 
 class MainWindow(QMainWindow):
@@ -156,7 +167,7 @@ class MainWindow(QMainWindow):
         """Initialization."""
         super().__init__()
 
-        self.current_sound = None  # FIXME : à supprimer
+        self.current_sound = None
         self.current_item = None
         self.pairs = pairs  # From 'pairs' package.
 
@@ -200,6 +211,21 @@ class MainWindow(QMainWindow):
 
         # Create a menu bar for the main window.
         menu_bar = QMenuBar(self)
+
+        # Create menu "Options".
+        options_menu = QMenu("Options", self)
+        menu_bar.addMenu(options_menu)
+        # Option Random Item
+        self.opt_random_item = QAction("Item aléatoire", self, checkable=True)
+        self.opt_random_item.setChecked(True)
+        # Create a custom widget with a QCheckBox for the "Random Item" option.
+        self.opt_random = CheckBoxMenuItem("Item aléatoire", self)
+        self.opt_random.checkbox.setChecked(True)
+        # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
+        random_widget_action = QWidgetAction(self)
+        random_widget_action.setDefaultWidget(self.opt_random)
+        options_menu.addAction(random_widget_action)
+
         # Create a Help menu and add it to the menu bar.
         help_menu = QMenu("Aide", self)
         menu_bar.addMenu(help_menu)
@@ -267,7 +293,7 @@ class MainWindow(QMainWindow):
         init_right_layout.addStretch(1)
         init_right_layout.addLayout(listen_button_layout)
         init_right_layout.addStretch(2)
-        
+
         return init_right_layout
 
     def init_central_widget(self, main_layout):
@@ -325,7 +351,7 @@ class MainWindow(QMainWindow):
         if self.list_a.isVisible():
             self.list_a.hide()
             self.list_b.hide()
-            self.left_layout.insertWidget(empty_widget)
+            self.left_layout.insertWidget(0, empty_widget)
             empty_widget.show()
         else:
             self.left_layout.removeWidget(empty_widget)
@@ -378,19 +404,21 @@ class MainWindow(QMainWindow):
         self.listen_button.clicked.connect(lambda: self.play_audio(audio_path))
 
     def image_label1_clicked(self, event):
+        """When Image1 is clicked."""
         self.check_answer(self.current_item.word1)
 
     def image_label2_clicked(self, event):
+        """When Image2 is clicked."""
         self.check_answer(self.current_item.word2)
 
     def check_answer(self, selected_word):
+        """Check if clicked image corresponds to audio."""
 
         if not self.current_item:
             return None
 
         correct_word = self.current_item.audio
 
-        # Vérifier si la réponse est correcte
         if selected_word == correct_word:
             self.current_item.score += 1
             QMessageBox.information(self, "Bravo!", f"La réponse est correcte: {correct_word}")
@@ -401,17 +429,27 @@ class MainWindow(QMainWindow):
         self.current_item.total_attempts += 1
 
     def next_item(self):
-        """Passe à l'élément suivant dans la liste B."""
-        current_row = self.list_b.currentRow()
-        next_row = current_row + 1
+        if self.list_b.currentRow() == -1:
+            return
 
-        if next_row < self.list_b.count():
-            next_item = self.list_b.item(next_row)
-            self.list_b.setCurrentItem(next_item)
-            self.handle_list_b_click(next_item)
+        if self.opt_random.checkbox.isChecked():
+            current_row = self.list_b.currentRow()
+            new_row = current_row
+
+            # Chooses a new random row different from the current one.
+            while new_row == current_row:
+                new_row = random.randint(0, self.list_b.count() - 1)
+
+            self.list_b.setCurrentRow(new_row)
         else:
-            QMessageBox.information(self, "Félicitations !", "Vous avez terminé tous les exercices de cette catégorie.")
-            self.current_item = None
+            # If the current item is the last one, loop back to the first item.
+            if self.list_b.currentRow() == self.list_b.count() - 1:
+                self.list_b.setCurrentRow(0)
+            else:
+                # Otherwise, just move to the next item.
+                self.list_b.setCurrentRow(self.list_b.currentRow() + 1)
+
+        self.list_b.itemClicked.emit(self.list_b.currentItem())
 
     def play_audio(self, file: Path):
         """Play a random audio file from the given list of audio files.
@@ -435,7 +473,6 @@ class MainWindow(QMainWindow):
                                    website=SoftwareInfo.WEBSITE)
         # Show the AboutDialog.
         about_dialog.show()
-
 
 
 
