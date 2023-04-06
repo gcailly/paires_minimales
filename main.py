@@ -30,7 +30,7 @@ class SoftwareInfo:
     associated website.
     """
     NAME = "Les Paires Minimales"
-    VERSION = "0.4.0"
+    VERSION = "0.5.0"
     AUTHOR = "Gautier Cailly"
     WEBSITE = "www.oortho.fr"
 
@@ -376,6 +376,7 @@ class MainWindow(QMainWindow):
 
     def update_list_b(self, item):
         """Update the second list (B) with pairs of a category ("pain / bain", etc.)."""
+
         # Find the corresponding pair.
         pair_label = item.text().replace(" / ", "_")
         pair_data = None
@@ -383,12 +384,19 @@ class MainWindow(QMainWindow):
             if pair[0] == pair_label:
                 pair_data = pair[1:]
                 break
+
         # Clear List B and update it with the new word pairs.
         if pair_data:
             self.list_b.clear()
             for word_pair in pair_data:
                 formatted_pair = f"{word_pair[0]} / {word_pair[1]}"
                 self.list_b.addItem(formatted_pair)
+
+        # Select the first item in List B automatically.
+        if self.list_b.count() > 0:
+            first_item = self.list_b.item(0)
+            self.list_b.setCurrentItem(first_item)
+            self.handle_list_b_click(first_item)
 
     def handle_list_b_click(self, item):
         """Handle the click event on a word pair in List B. Update the displayed images and prepare
@@ -439,6 +447,10 @@ class MainWindow(QMainWindow):
             self.current_item.score += 1
             QMessageBox.information(self, "Bravo!", f"La réponse est correcte: {correct_word}")
             self.next_item()
+            # If "Automatic Listening" is checked, play the audio for the next item automatically.
+            if self.opt_auto_listen.checkbox.isChecked():
+                audio_path = PathManager.get_sound_path(self.current_item.audio)
+                self.play_audio(audio_path)
         else:
             QMessageBox.warning(self, "Erreur", f"La réponse est incorrecte. La bonne réponse est: {correct_word}")
 

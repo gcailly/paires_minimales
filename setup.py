@@ -1,7 +1,13 @@
+"""
+python src\setup.py build
+"""
+
+
+from main import SoftwareInfo
 from cx_Freeze import setup, Executable
 
 # Remplacez "mon_script" par le nom de votre fichier de script sans l'extension .py
-executables = [Executable("src/main.py")]
+executables = [Executable("src\main.py")]
 
 options = {
     "build_exe": {
@@ -15,12 +21,13 @@ options = {
             "PySide6.QtNetwork",
         ],
         "zip_include_packages": ["PySide6"],
+        "include_files": [("src\data", "data")]
     },
 }
 
 setup(
-    name="Les Paires Minimales",
-    version="1.0.0",
+    name=SoftwareInfo.NAME,
+    version=SoftwareInfo.VERSION,
     description="",
     options=options,
     executables=executables

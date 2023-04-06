@@ -3,11 +3,19 @@ Global:
     ✔ Changement des images @done(23-04-04 23:44)
     ☐ Quelques arrières-plans à rendre transparents
     ✔ Audio ne marche pas @done(23-04-05 09:55)
-    ☐ Structure MVC
-    ☐ Modifier paragraphe AboutDialog
+    ✘ Structure MVC @cancelled(23-04-06 23:41)
+    ✔ Modifier paragraphe AboutDialog @done(23-04-06 23:41)
     ☐ Message d'erreur si le son est muet
+    ☐ Réenregistrer "barre"
+    ☐ Icône
+    ✔ Option Ordre aléatoire @done(23-04-06 23:42)
+    ✔ Option Auto écoute @done(23-04-06 23:42)
+    ☐ Export des images
+        ☐ Listes réorganisables et checkables
+        ☐ Mécanisme avec pillow et fpdf
+    ☐ LICENSE.txt
 
 Build:
-    ☐ Build qui intègre les images
+    ☐ Build qui intègre les data
     ☐ Vérifier les packages inclus et exclus
-
+    ☐ Script installation Inno Setup
