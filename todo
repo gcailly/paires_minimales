@@ -1,24 +1,31 @@
 
 Global:
-    ✔ Changement des images @done(23-04-04 23:44)
     ☐ Quelques arrières-plans à rendre transparents
-    ✔ Audio ne marche pas @done(23-04-05 09:55)
-    ✘ Structure MVC @cancelled(23-04-06 23:41)
-    ✔ Modifier paragraphe AboutDialog @done(23-04-06 23:41)
+    ☐ L'ordre des images devrait être aléatoire
+    ☐ Son de réussite, en option (/win)
+    ☐ Git init dans lpm et non dans src
     ☐ Message d'erreur si le son est muet
+    ☐ Vérifier tous les fichiers son
     ☐ Réenregistrer:
         ☐ barre
         ☐ grotte
-    ✔ Icône @done(23-04-07 14:59)
-    ✔ Option Ordre aléatoire @done(23-04-06 23:42)
-    ✔ Option Auto écoute @done(23-04-06 23:42)
     ☐ Export des images
         ☐ Listes réorganisables et checkables
         ☐ Mécanisme avec pillow et fpdf
-    ☐ LICENSE.txt
+    ☐ LICENSE.txt à terminer
 
 Build:
-    ✔ Build qui intègre les data @done(23-04-07 15:00)
     ☐ Vérifier les packages inclus et exclus
-    ✔ Script installation Inno Setup @done(23-04-07 15:00)
-    ✔ Pb cx_freeze importlib @done(23-04-07 15:00)
+
+
+Archive:
+  ✔ Changement des images @done(23-04-04 23:44) @project(Global)
+  ✔ Audio ne marche pas @done(23-04-05 09:55) @project(Global)
+  ✘ Structure MVC @cancelled(23-04-06 23:41) @project(Global)
+  ✔ Modifier paragraphe AboutDialog @done(23-04-06 23:41) @project(Global)
+  ✔ Icône @done(23-04-07 14:59) @project(Global)
+  ✔ Option Ordre aléatoire @done(23-04-06 23:42) @project(Global)
+  ✔ Option Auto écoute @done(23-04-06 23:42) @project(Global)
+  ✔ Build qui intègre les data @done(23-04-07 15:00) @project(Build)
+  ✔ Script installation Inno Setup @done(23-04-07 15:00) @project(Build)
+  ✔ Pb cx_freeze importlib @done(23-04-07 15:00) @project(Build)
