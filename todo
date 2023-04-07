@@ -18,7 +18,7 @@ Global:
     ☐ LICENSE.txt
 
 Build:
-    ☐ Build qui intègre les data
+    ✔ Build qui intègre les data @done(23-04-07 15:00)
     ☐ Vérifier les packages inclus et exclus
-    ☐ Script installation Inno Setup
-    ☐ Pb cx_freeze importlib
+    ✔ Script installation Inno Setup @done(23-04-07 15:00)
+    ✔ Pb cx_freeze importlib @done(23-04-07 15:00)

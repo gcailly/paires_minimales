@@ -6,6 +6,7 @@ Application.
 
 
 import sys
+import json
 import importlib.resources
 import random
 from typing import Optional
@@ -163,6 +164,40 @@ class CheckBoxMenuItem(QWidget):
         self.setLayout(layout)
 
 
+class OptionsManager:
+    """Manage option's loading and saving."""
+
+    def __init__(self, file_path):
+        """Initialize the OptionsManager with the given file path."""
+        self.file_path = file_path
+        self.options = self.load_options()
+
+    def load_options(self):
+        """Load options from the JSON file or create default options."""
+        # Check if the options file exists.
+        if Path(self.file_path).is_file():
+            # Load options from the file.
+            with open(self.file_path, "r", encoding="utf-8") as file:
+                options = json.load(file)
+        else:
+            # Create default options if the file doesn't exist.
+            options = {"random_order": True, "auto_listen": True}
+        return options
+
+    def save_options(self):
+        """Save the current options to the JSON file."""
+        with open(self.file_path, "w", encoding="utf-8") as file:
+            json.dump(self.options, file)
+
+    def get_option(self, key):
+        """Get the value of the specified option."""
+        return self.options.get(key)
+
+    def set_option(self, key, value):
+        """Set the value of the specified option."""
+        self.options[key] = value
+
+
 class MainWindow(QMainWindow):
     """Main window."""
 
@@ -174,6 +209,7 @@ class MainWindow(QMainWindow):
         self.current_item = None
         self.pairs = pairs  # From 'pairs' package.
 
+        # Set title and icon.
         self.setWindowTitle(f"{SoftwareInfo.NAME} {SoftwareInfo.VERSION}")
         icon_path = importlib.resources.files("data") / "app_icon.png"
         icon = QIcon(str(icon_path))
@@ -192,8 +228,15 @@ class MainWindow(QMainWindow):
         self.next_button = None
         self.central_widget = None
 
+        # Create UI.
         self.init_ui()
         self.populate_list_a()
+        
+        # Set up OptionsManager and get checkboxes state.
+        self.options_manager = OptionsManager("options.json")
+        self.opt_random.checkbox.setChecked(self.options_manager.get_option("random_order"))
+        self.opt_auto_listen.checkbox.setChecked(self.options_manager.get_option("auto_listen"))
+
 
     def init_ui(self):
         """Contains the window's widgets."""
@@ -226,6 +269,8 @@ class MainWindow(QMainWindow):
         # Create a custom widget with a QCheckBox for the "Random Item" option.
         self.opt_random = CheckBoxMenuItem("Ordre aléatoire", self)
         self.opt_random.checkbox.setChecked(True)
+        self.opt_random.checkbox.stateChanged.connect(self.save_options_to_file)
+
         # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
         random_widget_action = QWidgetAction(self)
         random_widget_action.setDefaultWidget(self.opt_random)
@@ -234,6 +279,8 @@ class MainWindow(QMainWindow):
         # Create a custom widget with a QCheckBox for the "Automatic Listening" option.
         self.opt_auto_listen = CheckBoxMenuItem("Écoute automatique", self)
         self.opt_auto_listen.checkbox.setChecked(True)
+        self.opt_auto_listen.checkbox.stateChanged.connect(self.save_options_to_file)
+        
         # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
         auto_listen_widget_action = QWidgetAction(self)
         auto_listen_widget_action.setDefaultWidget(self.opt_auto_listen)
@@ -431,17 +478,19 @@ class MainWindow(QMainWindow):
     def image_label1_clicked(self, event):
         """When Image1 is clicked."""
         self.event = event
-        self.check_answer(self.current_item.word1)
+        if self.current_item is not None:
+            self.check_answer(self.current_item.word1)
 
     def image_label2_clicked(self, event):
         """When Image2 is clicked."""
         self.event = event
-        self.check_answer(self.current_item.word2)
+        if self.current_item is not None:
+            self.check_answer(self.current_item.word2)
 
     def check_answer(self, selected_word):
         """Check if clicked image corresponds to audio."""
 
-        if not self.current_item:
+        if self.current_item is None:
             return None
 
         correct_word = self.current_item.audio
@@ -496,6 +545,11 @@ class MainWindow(QMainWindow):
         self.current_sound.setSource(QUrl.fromLocalFile(file))
         self.current_sound.setVolume(1)
         self.current_sound.play()
+
+    def save_options_to_file(self):
+        self.options_manager.set_option("random_order", self.opt_random.checkbox.isChecked())
+        self.options_manager.set_option("auto_listen", self.opt_auto_listen.checkbox.isChecked())
+        self.options_manager.save_options()
 
     def show_about_dialog(self):
         """Display an About Dialog for the application."""
