@@ -6,13 +6,13 @@ Application.
 
 
 import sys
-import importlib
+import importlib.resources
 import random
 from typing import Optional
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QPixmap, QAction, QActionGroup
+from PySide6.QtGui import QPixmap, QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
                                QMessageBox, QWidgetAction,
                                QListWidget, QListWidgetItem, QCheckBox,
@@ -175,6 +175,9 @@ class MainWindow(QMainWindow):
         self.pairs = pairs  # From 'pairs' package.
 
         self.setWindowTitle(f"{SoftwareInfo.NAME} {SoftwareInfo.VERSION}")
+        icon_path = importlib.resources.files("data") / "app_icon.png"
+        icon = QIcon(str(icon_path))
+        self.setWindowIcon(icon)
 
         # Define the attributes.
         self.list_a = None

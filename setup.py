@@ -2,12 +2,24 @@
 python src\setup.py build
 """
 
-
-from main import SoftwareInfo
+import sys
+import importlib.resources
 from cx_Freeze import setup, Executable
 
+from main import SoftwareInfo
+
+
+base = None
+if sys.platform == "win32":
+    base = "Win32GUI"
+
+
 # Remplacez "mon_script" par le nom de votre fichier de script sans l'extension .py
-executables = [Executable("src\main.py")]
+executables = [Executable("src/main.py",
+                          base=base,
+                          icon=importlib.resources.files("data") / "app_icon.ico",
+                          target_name="lpm.exe")]
+
 
 options = {
     "build_exe": {
@@ -17,13 +29,13 @@ options = {
             "email",
             "http",
             "xml",
-            "pydoc",
-            "PySide6.QtNetwork",
-        ],
+            "pydoc"],
         "zip_include_packages": ["PySide6"],
-        "include_files": [("src\data", "data")]
+        # "include_files": [("src/data", "data")],
+        "includes": ["data"]
     },
 }
+
 
 setup(
     name=SoftwareInfo.NAME,

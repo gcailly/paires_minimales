@@ -6,8 +6,10 @@ Global:
     ✘ Structure MVC @cancelled(23-04-06 23:41)
     ✔ Modifier paragraphe AboutDialog @done(23-04-06 23:41)
     ☐ Message d'erreur si le son est muet
-    ☐ Réenregistrer "barre"
-    ☐ Icône
+    ☐ Réenregistrer:
+        ☐ barre
+        ☐ grotte
+    ✔ Icône @done(23-04-07 14:59)
     ✔ Option Ordre aléatoire @done(23-04-06 23:42)
     ✔ Option Auto écoute @done(23-04-06 23:42)
     ☐ Export des images
@@ -19,3 +21,4 @@ Build:
     ☐ Build qui intègre les data
     ☐ Vérifier les packages inclus et exclus
     ☐ Script installation Inno Setup
+    ☐ Pb cx_freeze importlib
