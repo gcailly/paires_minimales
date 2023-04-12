@@ -233,6 +233,7 @@ class MainWindow(QMainWindow):
         # Define the attributes.
         self.list_a = None
         self.list_b = None
+        self.empty_widget = None
         self.toggle_button = None
         self.left_layout = None
         self.image_label1 = None
@@ -322,17 +323,23 @@ class MainWindow(QMainWindow):
     def init_left_layout(self):
         """Initialize the lists and the toggle button."""
 
+        # Empty widget to take the same place/size than list A/B.
+        self.empty_widget = QWidget()
+        self.empty_widget.setFixedWidth(200)
+        self.empty_widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.empty_widget.hide()
         self.list_a = QListWidget()
-        self.list_b = QListWidget()
         self.list_a.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.list_b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.list_a.itemClicked.connect(self.update_list_b)
+        self.list_b = QListWidget()
+        self.list_b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.list_b.itemClicked.connect(self.handle_list_b_click)
 
         self.toggle_button = QPushButton("Afficher/masquer")
         self.toggle_button.clicked.connect(self.toggle_lists)
 
         self.left_layout = QVBoxLayout()
+        self.left_layout.addWidget(self.empty_widget)
         self.left_layout.addWidget(self.list_a)
         self.left_layout.addWidget(self.list_b)
         self.left_layout.addWidget(self.toggle_button, alignment=Qt.AlignBottom)
@@ -427,18 +434,16 @@ class MainWindow(QMainWindow):
     def toggle_lists(self):
         """Toggle the visibility of the lists."""
 
-        # Empty widget to take the same place/size.
-        empty_widget = QWidget()
-        empty_widget.setFixedWidth(200)
-
         # Check if List A is visible.
         if self.list_a.isVisible():
             self.list_a.hide()
             self.list_b.hide()
-            self.left_layout.insertWidget(0, empty_widget)
-            empty_widget.show()
+            #self.left_layout.insertWidget(0, self.empty_widget)
+            self.empty_widget.show()
         else:
-            self.left_layout.removeWidget(empty_widget)
+            self.empty_widget.hide()
+            #self.empty_widget.deleteLater()
+            #self.left_layout.removeWidget(self.empty_widget)
             self.list_a.show()
             self.list_b.show()
 

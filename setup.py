@@ -23,15 +23,16 @@ executables = [Executable("src/main.py",
 
 options = {
     "build_exe": {
+        "includes": ["data"],
+        "zip_include_packages": ["PySide6"],
         "excludes": [
             "tkinter",
             "unittest",
             "email",
             "http",
             "xml",
-            "pydoc"],
-        "zip_include_packages": ["encodings", "PySide6"],
-        "includes": ["data"]
+            "pydoc",
+            "PySide6.Qt6Network"]
     },
 }
 
