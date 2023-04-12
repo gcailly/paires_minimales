@@ -9,15 +9,18 @@ import sys
 import json
 import importlib.resources
 import random
-from typing import Optional
+import time
+import os
+import platform
+import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QPixmap, QAction, QActionGroup, QIcon
+from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
-                               QMessageBox, QWidgetAction,
+                               QWidgetAction,
                                QListWidget, QListWidgetItem, QCheckBox,
-                               QPushButton, QLabel, QWidget, QSpacerItem, QSizePolicy,
+                               QPushButton, QLabel, QWidget, QSizePolicy,
                                QDialog, QDialogButtonBox,
                                QMenu, QMenuBar)
 from PySide6.QtMultimedia import QSoundEffect
@@ -31,7 +34,7 @@ class SoftwareInfo:
     associated website.
     """
     NAME = "Les Paires Minimales"
-    VERSION = "0.5.0"
+    VERSION = "1.0.0"
     AUTHOR = "Gautier Cailly"
     WEBSITE = "www.oortho.fr"
 
@@ -41,6 +44,8 @@ class PathManager:
     Provides static methods for obtaining the paths to image and sound files corresponding to a
     given word.
     """
+
+    manual_path = importlib.resources.files("data") / "manuel.pdf"
 
     @staticmethod
     def get_image_path(word: str) -> Path:
@@ -82,7 +87,7 @@ class AboutDialog(QDialog):
 
     def __init__(self,
                  app_name: str, app_version: str, app_author: str, website: str,
-                 parent=None):
+                 info=None, parent=None):
         """Init."""
 
         super().__init__(parent)
@@ -90,6 +95,7 @@ class AboutDialog(QDialog):
         self.app_version = app_version
         self.app_author = app_author
         self.website = website
+        self.info = info
         self.init_ui()
 
     def init_ui(self):
@@ -109,6 +115,12 @@ class AboutDialog(QDialog):
             <br>
             <a href="https://{self.website}">{self.website}</a>
             """
+        if self.info is not None:
+            content_text += f"""
+                <br><br>
+                {self.info}
+                """
+
         content = QLabel(content_text)
         content.setWordWrap(True)
         content.setOpenExternalLinks(True)
@@ -181,7 +193,9 @@ class OptionsManager:
                 options = json.load(file)
         else:
             # Create default options if the file doesn't exist.
-            options = {"random_order": True, "auto_listen": True}
+            options = {"random_order": True,
+                       "auto_listen": True,
+                       "success_sound": True}
         return options
 
     def save_options(self):
@@ -189,9 +203,10 @@ class OptionsManager:
         with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(self.options, file)
 
-    def get_option(self, key):
-        """Get the value of the specified option."""
-        return self.options.get(key)
+    def get_option(self, key, default=None):
+        """Get the value of the specified option.
+        default is for when an options is not available in the json file."""
+        return self.options.get(key, default)
 
     def set_option(self, key, value):
         """Set the value of the specified option."""
@@ -205,7 +220,7 @@ class MainWindow(QMainWindow):
         """Initialization."""
         super().__init__()
 
-        self.current_sound = None
+        self.current_sound = QSoundEffect()
         self.current_item = None
         self.pairs = pairs  # From 'pairs' package.
 
@@ -231,11 +246,12 @@ class MainWindow(QMainWindow):
         # Create UI.
         self.init_ui()
         self.populate_list_a()
-        
+
         # Set up OptionsManager and get checkboxes state.
         self.options_manager = OptionsManager("options.json")
-        self.opt_random.checkbox.setChecked(self.options_manager.get_option("random_order"))
-        self.opt_auto_listen.checkbox.setChecked(self.options_manager.get_option("auto_listen"))
+        self.opt_random.checkbox.setChecked(self.options_manager.get_option("random_order", True))
+        self.opt_auto_listen.checkbox.setChecked(self.options_manager.get_option("auto_listen", True))
+        self.opt_success_sound.checkbox.setChecked(self.options_manager.get_option("success_sound", True))
 
 
     def init_ui(self):
@@ -264,31 +280,39 @@ class MainWindow(QMainWindow):
         # Create menu "Options".
         options_menu = QMenu("Options", self)
         menu_bar.addMenu(options_menu)
-        
+
         # FIXME : CheckBoxMenuItem devrait directement être un QWidgetAction, avec une option setChecked, etc.
+
         # Create a custom widget with a QCheckBox for the "Random Item" option.
         self.opt_random = CheckBoxMenuItem("Ordre aléatoire", self)
         self.opt_random.checkbox.setChecked(True)
         self.opt_random.checkbox.stateChanged.connect(self.save_options_to_file)
-
         # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
         random_widget_action = QWidgetAction(self)
         random_widget_action.setDefaultWidget(self.opt_random)
         options_menu.addAction(random_widget_action)
-        
+
         # Create a custom widget with a QCheckBox for the "Automatic Listening" option.
         self.opt_auto_listen = CheckBoxMenuItem("Écoute automatique", self)
         self.opt_auto_listen.checkbox.setChecked(True)
         self.opt_auto_listen.checkbox.stateChanged.connect(self.save_options_to_file)
-        
         # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
         auto_listen_widget_action = QWidgetAction(self)
         auto_listen_widget_action.setDefaultWidget(self.opt_auto_listen)
         options_menu.addAction(auto_listen_widget_action)
 
+        # Create a custom widget with a QCheckBox for the "Success Sound" option.
+        self.opt_success_sound = CheckBoxMenuItem("Son de réussite", self)
+        self.opt_success_sound.checkbox.setChecked(True)
+        self.opt_success_sound.checkbox.stateChanged.connect(self.save_options_to_file)
+        # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
+        success_sound_widget_action = QWidgetAction(self)
+        success_sound_widget_action.setDefaultWidget(self.opt_success_sound)
+        options_menu.addAction(success_sound_widget_action)
+
         # Create a Help menu and add it to the menu bar.
-        help_menu = QMenu("Aide", self)
-        menu_bar.addMenu(help_menu)
+        help_action = menu_bar.addAction("Manuel")
+        help_action.triggered.connect(lambda: self.open_pdf(PathManager.manual_path))
         # Create an About action and add it to the menu bar.
         about_action = menu_bar.addAction("À propos")
         about_action.triggered.connect(self.show_about_dialog)
@@ -454,21 +478,26 @@ class MainWindow(QMainWindow):
 
         # Get the image and audio names from the clicked item in List B.
         pair = item.text().split(" / ")
-        word1, word2 = pair
+        # Word are shuffled so not always the same image at the same place.
+        random.shuffle(pair)
         # Pick a random word as good response, which will be pronounced (audio).
         audio = random.choice(pair)
         # Store this in current item.
-        self.current_item = CurrentItem(word1, word2, audio)
+        self.current_item = CurrentItem(pair[0], pair[1], audio)
         # Set paths.
-        audio_path = PathManager.get_sound_path(audio)
-        image1_path = PathManager.get_image_path(word1)
-        image2_path = PathManager.get_image_path(word2)
+        audio_path = PathManager.get_sound_path(self.current_item.audio)
+        image1_path = PathManager.get_image_path(self.current_item.word1)
+        image2_path = PathManager.get_image_path(self.current_item.word2)
 
         # Update the image labels with the new images.
         self.image_label1.set_image(image1_path, 0, 0)
         self.image_label2.set_image(image2_path, 0, 0)
         self.resize_images()
         # Update the audio playback function of the "Listen" button.
+        try:
+            self.listen_button.clicked.disconnect()
+        except RuntimeError:
+            pass
         self.listen_button.clicked.connect(lambda: self.play_audio(audio_path))
 
         # Play the audio automatically if the "Automatic Listening" option is checked.
@@ -490,6 +519,8 @@ class MainWindow(QMainWindow):
     def check_answer(self, selected_word):
         """Check if clicked image corresponds to audio."""
 
+        # self.set_ui_state("disabled")
+
         if self.current_item is None:
             return None
 
@@ -497,16 +528,38 @@ class MainWindow(QMainWindow):
 
         if selected_word == correct_word:
             self.current_item.score += 1
-            QMessageBox.information(self, "Bravo!", f"La réponse est correcte: {correct_word}")
+            # FIXME
+            if self.opt_success_sound.checkbox.isChecked():
+                success_sound = self.get_random_success_sound()
+                self.play_audio(success_sound)
+                # Wait for the sound to finish.
+                while self.current_sound.isPlaying():
+                    QApplication.processEvents()
+                    time.sleep(0.1)
+            else:
+                #QMessageBox.information(self, "Bravo!", f"La réponse est correcte: {correct_word}")
+                pass
+            # Go to next item.
             self.next_item()
-            # If "Automatic Listening" is checked, play the audio for the next item automatically.
-            if self.opt_auto_listen.checkbox.isChecked():
-                audio_path = PathManager.get_sound_path(self.current_item.audio)
-                self.play_audio(audio_path)
+        # If erroneous response.
         else:
-            QMessageBox.warning(self, "Erreur", f"La réponse est incorrecte. La bonne réponse est: {correct_word}")
+            #QMessageBox.warning(self, "Erreur", f"La réponse est incorrecte. La bonne réponse est : {correct_word}")
+            # Sound : "This is..."
+            this_is_sound = PathManager.get_sound_path("_ça c'est")
+            self.play_audio(this_is_sound)
+            # Sound : the wrong word, which completes "This is...".
+            wrong_word = selected_word
+            wrong_sound = PathManager.get_sound_path(wrong_word)
+            self.play_audio(wrong_sound)
+            # Sound : "Show me..."
+            show_me_sound = PathManager.get_sound_path("_montre moi")
+            self.play_audio(show_me_sound)
+            # Sound : the word we ask.
+            correct_word_sound = PathManager.get_sound_path(correct_word)
+            self.play_audio(correct_word_sound)
 
         self.current_item.total_attempts += 1
+        # self.set_ui_state("enabled")
 
     def next_item(self):
         """Go to next item : next in list B or random in list B.
@@ -535,34 +588,108 @@ class MainWindow(QMainWindow):
 
         self.list_b.itemClicked.emit(self.list_b.currentItem())
 
+    def set_ui_state(self, state: str):
+        """Enable or disable important parts of UI.
+        Purpose : not having a child clicking 100 times on a button which produces 100 sounds."""
+
+        widgets = [self.listen_button, self.next_button,
+                   self.list_a, self.list_b,
+                   self.image_label1, self.image_label2]
+
+        if state == "enabled":
+            for w in widgets:
+                w.setEnabled(True)
+                # w.blockSignals(False)  # Works bad.
+            print("UI enabled")
+
+        if state == "disabled":
+            for w in widgets:
+                w.setEnabled(False)
+                # w.blockSignals(True)
+            print("UI disabled")
+
     def play_audio(self, file: Path):
-        """Play a random audio file from the given list of audio files.
+        """Play an audio file.
         WARNING : Add this line into the __init__ of the QMainWindow, else sound will be stopped
         when the function ends (so fast we won't hear anything).
             self.current_sound = None
         """
+        self.set_ui_state("disabled")
+        # Do nothing if sound is already playing.
+        while self.current_sound.isPlaying():
+            return
+            # QApplication.processEvents()
+            # time.sleep(0.1)
+
+        print(f"Play {file}.")
+        # Reinit sound an set source file.
         self.current_sound = QSoundEffect()
         self.current_sound.setSource(QUrl.fromLocalFile(file))
+        # Start playing the sound.
         self.current_sound.setVolume(1)
         self.current_sound.play()
 
+        # Wait for the sound to end.
+        while self.current_sound.isPlaying():
+            QApplication.processEvents()
+            time.sleep(0.1)
+        self.set_ui_state("enabled")
+
+    def get_random_success_sound(self) -> Path:
+        """Return a random success sound file from the 'success' sounds directory."""
+        sounds_dir = importlib.resources.files("data") / "sounds" / "success"
+        files = [f for f in sounds_dir.iterdir() if f.is_file() and f.suffix.lower() == ".wav"]
+        # If no sound files in folder (should be impossible) FIXME.
+        if not files == []:
+            random_sound = random.choice(files)
+            return random_sound
+
     def save_options_to_file(self):
+        """Save the current options to the options file."""
         self.options_manager.set_option("random_order", self.opt_random.checkbox.isChecked())
         self.options_manager.set_option("auto_listen", self.opt_auto_listen.checkbox.isChecked())
+        self.options_manager.set_option("success_sound", self.opt_success_sound.checkbox.isChecked())
         self.options_manager.save_options()
+
+    def open_pdf(self, file_name):
+        if platform.system() == "Windows":
+            os.startfile(file_name)
+        elif platform.system() == "Linux":
+            subprocess.Popen(["xdg-open", file_name])
+        elif platform.system() == "Darwin":  # macOS
+            subprocess.Popen(["open", file_name])
 
     def show_about_dialog(self):
         """Display an About Dialog for the application."""
+
+        license_info = """
+            Ce programme est distribué gratuitement sans aucune garantie, sous licence <a
+            href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr">Creative Commons CC
+            BY-NC-ND.</a>
+            <br><br>
+            Les symboles pictographiques utilisés sont la propriété du
+            Gouvernement d'Aragon et ont été créés par Sergio Palao pour ARASAAC
+            (http://www.arasaac.org), qui les distribuent sous Licence
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr">Creative Commons CC
+            BY-NC-SA.</a>.
+            <br>
+            Certains pictogrammes sont la propriété de Gautier Cailly et sont distribués sous
+            la même licence que le programme.
+            <br>
+            L'icône du programme a été dessiné par <a href="https://www.flaticon.com/fr/icones-gratuites/chaussure">Freepik</a>.
+            <br>
+            Les sons sont sous licence Pixabay, ou CC0. Merci à Kevin Luce.
+            """
 
         # Create an instance of the AboutDialog.
         about_dialog = AboutDialog(parent = self,
                                    app_name=SoftwareInfo.NAME,
                                    app_version=SoftwareInfo.VERSION,
                                    app_author=SoftwareInfo.AUTHOR,
-                                   website=SoftwareInfo.WEBSITE)
+                                   website=SoftwareInfo.WEBSITE,
+                                   info = license_info)
         # Show the AboutDialog.
         about_dialog.show()
-
 
 
 if __name__ == "__main__":

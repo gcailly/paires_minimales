@@ -30,8 +30,7 @@ options = {
             "http",
             "xml",
             "pydoc"],
-        "zip_include_packages": ["PySide6"],
-        # "include_files": [("src/data", "data")],
+        "zip_include_packages": ["encodings", "PySide6"],
         "includes": ["data"]
     },
 }

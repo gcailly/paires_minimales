@@ -218,3 +218,17 @@ fins = [
     ["loup", "louche"],
     ["ment", "mange"],
 ]
+
+
+# Fonction pour compter les paires
+def count_pairs(pairs):
+    count = 0
+    for cat in pairs:
+        count += len(cat) - 1
+    return count
+
+
+if __name__ == "__main__":
+    # Compter le nombre de paires et l'afficher
+    total_pairs = count_pairs(pairs)
+    print(f"Nombre total de paires de mots: {total_pairs}")
