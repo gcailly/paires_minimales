@@ -31,8 +31,7 @@ options = {
             "email",
             "http",
             "xml",
-            "pydoc",
-            "PySide6.Qt6Network"]
+            "pydoc"]
     },
 }
 

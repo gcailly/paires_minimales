@@ -34,7 +34,7 @@ class SoftwareInfo:
     associated website.
     """
     NAME = "Les Paires Minimales"
-    VERSION = "1.0.0"
+    VERSION = "1.0.2"
     AUTHOR = "Gautier Cailly"
     WEBSITE = "www.oortho.fr"
 
@@ -195,7 +195,8 @@ class OptionsManager:
             # Create default options if the file doesn't exist.
             options = {"random_order": True,
                        "auto_listen": True,
-                       "success_sound": True}
+                       "success_sound": True,
+                       "hide_next_button": True}
         return options
 
     def save_options(self):
@@ -205,7 +206,7 @@ class OptionsManager:
 
     def get_option(self, key, default=None):
         """Get the value of the specified option.
-        default is for when an options is not available in the json file."""
+        default is for when an option is not available in the json file."""
         return self.options.get(key, default)
 
     def set_option(self, key, value):
@@ -247,18 +248,31 @@ class MainWindow(QMainWindow):
         # Create UI.
         self.init_ui()
         self.populate_list_a()
+        self.load_options_from_file()
 
+    def load_options_from_file(self):
+        """Loads options from the json options file and apply them."""
+        # Load options.
         # Set up OptionsManager and get checkboxes state.
         self.options_manager = OptionsManager("options.json")
-        self.opt_random.checkbox.setChecked(self.options_manager.get_option("random_order", True))
-        self.opt_auto_listen.checkbox.setChecked(self.options_manager.get_option("auto_listen", True))
-        self.opt_success_sound.checkbox.setChecked(self.options_manager.get_option("success_sound", True))
+        self.opt_random.checkbox.setChecked(
+            self.options_manager.get_option("random_order", True))
+        self.opt_auto_listen.checkbox.setChecked(
+            self.options_manager.get_option("auto_listen", True))
+        self.opt_success_sound.checkbox.setChecked(
+            self.options_manager.get_option("success_sound", True))
+        self.opt_hide_next_button.checkbox.setChecked(
+            self.options_manager.get_option("hide_next_button", True))
 
+        # Apply options.
+        # Handle Hide Next Button option.
+        self.toggle_hide_next_button(state=self.opt_hide_next_button.checkbox.isChecked())
 
     def init_ui(self):
         """Contains the window's widgets."""
 
-        # Menu creation.
+        # Menu creation. Make it first because it loads options. They are be applied when layouts of
+        # main windows are initialized.
         self.init_menu()
 
         main_layout = QHBoxLayout()
@@ -282,7 +296,8 @@ class MainWindow(QMainWindow):
         options_menu = QMenu("Options", self)
         menu_bar.addMenu(options_menu)
 
-        # FIXME : CheckBoxMenuItem devrait directement être un QWidgetAction, avec une option setChecked, etc.
+        # FIXME : These redundant groups of 6 lines for each CheckBoxMenuItem should be factorized.
+        # These 6 lines are complex because this is a custom widget.
 
         # Create a custom widget with a QCheckBox for the "Random Item" option.
         self.opt_random = CheckBoxMenuItem("Ordre aléatoire", self)
@@ -310,6 +325,17 @@ class MainWindow(QMainWindow):
         success_sound_widget_action = QWidgetAction(self)
         success_sound_widget_action.setDefaultWidget(self.opt_success_sound)
         options_menu.addAction(success_sound_widget_action)
+
+        # Create a custom widget with a QCheckBox for the "Hide Next Button" option.
+        self.opt_hide_next_button = CheckBoxMenuItem('Cacher le bouton "Suivant"', self)
+        self.opt_hide_next_button.checkbox.setChecked(True)
+        self.opt_hide_next_button.checkbox.stateChanged.connect(self.save_options_to_file)
+        # Create a QWidgetAction, set the custom widget, and add it to the "Options" menu.
+        opt_hide_next_button_widget_action = QWidgetAction(self)
+        opt_hide_next_button_widget_action.setDefaultWidget(self.opt_hide_next_button)
+        options_menu.addAction(opt_hide_next_button_widget_action)
+        # Action when un/checked.
+        self.opt_hide_next_button.checkbox.stateChanged.connect(self.toggle_hide_next_button)
 
         # Create a Help menu and add it to the menu bar.
         help_action = menu_bar.addAction("Manuel")
@@ -438,14 +464,19 @@ class MainWindow(QMainWindow):
         if self.list_a.isVisible():
             self.list_a.hide()
             self.list_b.hide()
-            #self.left_layout.insertWidget(0, self.empty_widget)
             self.empty_widget.show()
         else:
             self.empty_widget.hide()
-            #self.empty_widget.deleteLater()
-            #self.left_layout.removeWidget(self.empty_widget)
             self.list_a.show()
             self.list_b.show()
+
+    def toggle_hide_next_button(self, state: bool):
+        """Toggle the visibility of the next button.
+        state : checkbox is checked or not ?"""
+        if state:  # Checkbox checked.
+            self.next_button.hide()
+        else:  # Checkbox unchecked.
+            self.next_button.show()
 
     def populate_list_a(self):
         """Populate the first list (A) with pair category ("p / b", etc.)."""
