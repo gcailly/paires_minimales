@@ -198,7 +198,9 @@ fin_l = [
 fin_r = [
     ["bas", "barre"],
     ["lit", "lire"],
-    ["cou", "court"]
+    ["cou", "court"],
+    ["chat", "char"],
+    ["bois", "boire"]
 
 ]
 
@@ -207,6 +209,9 @@ fin_m = [
     ["pot", "pomme"],
 ]
 
+fin_p = [
+    ["poule", "poulpe"]
+]
 
 fins = [
     ["boue", "bouche"],

@@ -34,7 +34,7 @@ class SoftwareInfo:
     associated website.
     """
     NAME = "Les Paires Minimales"
-    VERSION = "1.0.2"
+    VERSION = "1.0.3"
     AUTHOR = "Gautier Cailly"
     WEBSITE = "www.oortho.fr"
 
@@ -391,9 +391,10 @@ class MainWindow(QMainWindow):
         images_layout.addWidget(self.image_label2)
 
         self.listen_button = QPushButton("Écouter")
-        self.listen_button.setFixedHeight(32)
+        self.listen_button.setFixedHeight(40)
+        self.listen_button.setFixedWidth(120)
         self.next_button = QPushButton(" > ")
-        self.next_button.setFixedHeight(32)
+        self.next_button.setFixedHeight(40)
         self.next_button.clicked.connect(self.next_item)
 
         listen_button_layout = QHBoxLayout()
